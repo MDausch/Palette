@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>items</key>
+	<array>
+        <dict>
+          <key>cell</key>                   <string>PSSwitchCell</string>
+          <key>PostNotification</key>       <string>ch.mdaus.palette.settingschanged</string>
+          <key>default</key>                <true/>
+          <key>defaults</key>               <string>ch.mdaus.palette</string>
+          <key>key</key>                    <string>ccNowPlayingEnabled</string>
+          <key>label</key>                  <string>Enable</string>
+          <key>icon</key>                   <string>enabled.png</string>
+
+        </dict>
+
+        <dict>
+            <key>cell</key>                   <string>PSGroupCell</string>
+		</dict>
+
+        <dict>
+		  <key>cell</key>                   <string>PSGroupCell</string>
+		  <key>label</key>                  <string>Coloring</string>
+		</dict>
+
+        <dict>
+          <key>cell</key>                   <string>PSSTaticTextCell</string>
+          <key>label</key>                  <string>Color Alpha:</string>
+        </dict>
+
+        <dict>
+          <key>cell</key>                   <string>PSSliderCell</string>
+          <key>PostNotification</key>       <string>ch.mdaus.palette.settingschanged</string>
+          <key>default</key>                <string>.7</string>
+          <key>defaults</key>               <string>ch.mdaus.palette</string>
+          <key>key</key>                    <string>ccNowPlayingColorAlpha</string>
+          <key>min</key>                    <string>0.0</string>
+          <key>max</key>                    <string>1.0</string>
+          <key>showValue</key>              <true/>
+        </dict>
+
+
+	</array>
+
+	<key>title</key>
+	<string>Control Center NowPlaying - BETA</string>
+</dict>
+</plist>

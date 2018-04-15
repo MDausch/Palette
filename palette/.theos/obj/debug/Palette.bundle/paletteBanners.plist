@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>items</key>
+	<array>
+        <dict>
+          <key>cell</key>                   <string>PSSwitchCell</string>
+          <key>PostNotification</key>       <string>ch.mdaus.palette.settingschanged</string>
+          <key>default</key>                <true/>
+          <key>defaults</key>               <string>ch.mdaus.palette</string>
+          <key>key</key>                    <string>bannersEnabled</string>
+          <key>label</key>                  <string>Enable</string>
+          <key>icon</key>                   <string>enabled.png</string>
+        </dict>
+
+        <dict>
+		  <key>cell</key>                   <string>PSGroupCell</string>
+		</dict>
+
+        <dict>
+          <key>cell</key>                   <string>PSLinkListCell</string>
+          <key>PostNotification</key>       <string>ch.mdaus.palette.settingschanged</string>
+          <key>defaults</key>               <string>ch.mdaus.palette</string>
+          <key>default</key>                <string>1</string>
+          <key>key</key>                    <string>bannersBlurStyle</string>
+          <key>detail</key>              	<string>PSListItemsController</string>
+          <key>label</key>                  <string>Blur Style</string>
+          <key>validTitles</key>
+        	<array>
+        	  <string>Light BLur</string>
+        	  <string>Dark Blur</string>
+              <string>No Blur</string>
+    		</array>
+    	  <key>validValues</key>
+			<array>
+		      <integer>1</integer>
+			  <integer>2</integer>
+			  <integer>3</integer>
+    		</array>
+        </dict>
+
+
+        <dict>
+		  <key>cell</key>                   <string>PSGroupCell</string>
+		  <key>label</key>                  <string>Coloring</string>
+		</dict>
+
+        <dict>
+          <key>cell</key>                   <string>PSSTaticTextCell</string>
+          <key>label</key>                  <string>Color Alpha:</string>
+        </dict>
+
+        <dict>
+          <key>cell</key>                   <string>PSSliderCell</string>
+          <key>PostNotification</key>       <string>ch.mdaus.palette.settingschanged</string>
+          <key>default</key>                <string>.7</string>
+          <key>defaults</key>               <string>ch.mdaus.palette</string>
+          <key>key</key>                    <string>bannersColorAlpha</string>
+          <key>min</key>                    <string>0.0</string>
+          <key>max</key>                    <string>1.0</string>
+          <key>showValue</key>              <true/>
+        </dict>
+
+        <dict>
+          <key>cell</key>                   <string>PSLinkListCell</string>
+          <key>PostNotification</key>       <string>ch.mdaus.palette.settingschanged</string>
+          <key>defaults</key>               <string>ch.mdaus.palette</string>
+          <key>default</key>                <string>1</string>
+          <key>key</key>                    <string>bannersLabelColor</string>
+          <key>detail</key>              	<string>PSListItemsController</string>
+          <key>label</key>                  <string>Label Color</string>
+          <key>validTitles</key>
+        	<array>
+        	  <string>White</string>
+        	  <string>Black</string>
+              <string>Adaptive</string>
+    		</array>
+    	  <key>validValues</key>
+			<array>
+		      <integer>1</integer>
+			  <integer>2</integer>
+			  <integer>3</integer>
+    		</array>
+        </dict>
+
+
+	</array>
+	<key>title</key>
+	<string>Notifications</string>
+</dict>
+</plist>
