@@ -9,14 +9,11 @@
 @property(nonatomic, strong) UIImage *icon;
 -(void)setBackgroundView:(id)arg1;
 -(void)colorLabels:(UIView*)view color:(UIColor *)colorToUse;
--(UIImage *)scaleImage:(UIImage*)image width:(CGFloat)width height:(CGFloat)height;
 -(UIColor *)getAverageColor:(UIImage *)icon transparency:(float)alpha;
--(void)_configureHeaderContentView;
 @end
 
 @interface BSUIDateLabel : UILabel
 @property(nonatomic, strong) UIColor *textColor;
-+(id)_currentCalendar;
 -(void)setTextColor:(UIColor*)arg1;
 @end
 
@@ -44,7 +41,6 @@
 -(void)colorLabels:(UIView *)parentView color:(UIColor *)colorToUse;
 @end
 
-
 @interface _UIBackdropEffectView :UIView
 @end
 
@@ -53,8 +49,6 @@
 @property (nonatomic,retain) UIImageView * placeholderArtworkView;
 @property (assign,nonatomic) BOOL shouldUsePlaceholderArtwork;
 @property (nonatomic,retain) UILabel * primaryLabel;
-@property (nonatomic,retain) UILabel * titleLabel;
-@property (nonatomic,retain) UILabel * secondaryLabel;
 -(UIView *)artworkBackgroundView;
 -(void)colorBG:(UIView *)parentView color:(UIColor *)colorToUse isCustom:(BOOL)shouldUseCustomColor;
 -(void)colorLabels:(UIView *)parentView color:(UIColor *)colorToUse;
@@ -126,7 +120,7 @@ BOOL ccNowPlayingEnabled = YES;
 float ccNowPlayingColorAlpha =  0.7f;
 
 
-static CGFloat offset = (CGFloat)35;
+static CGFloat offset = (CGFloat)15;
 // ************************************************
 // ****************** Preferences *****************
 // ************************************************
@@ -208,6 +202,8 @@ static void PreferencesChangedCallback(CFNotificationCenterRef center, void *obs
 // ******************* Colorizer ******************
 // ************************************************
 
+
+//Thanks to stack overflow: https://stackoverflow.com/questions/5562095/average-color-value-of-uiimage-in-objective-c/42002273
 struct pixel {
     unsigned char r, g, b, a;
 };
@@ -228,8 +224,6 @@ static UIColor *dominantColorFromIcon(UIImage *icon, float alpha){
 			CGContextDrawImage(context, CGRectMake(0.0f, 0.0f, iconImage.size.width, iconImage.size.height), iconCGImage);
 			NSUInteger numberOfPixels = iconImage.size.width * iconImage.size.height;
 			for (int i = 0; i < numberOfPixels; i+=3) { //Only count every 10 pixels for speed
-          //luminence = (iconComponents[0]) * .299 + (iconComponents[1]) * .587 + (iconComponents[2]) * .114;
-          //if ((((pixels[i].r + pixels[i].g + pixels[i].b) / 3 )< 240) && (((pixels[i].r + pixels[i].g + pixels[i].b) / 3) > 40)){
           if ((((pixels[i].r * .299 + pixels[i].g * .587 + pixels[i].b * .114))< 230) && (((pixels[i].r * .299 + pixels[i].g * .587 + pixels[i].b * .114) > 20))){
 
 				      red += pixels[i].r;
@@ -256,11 +250,11 @@ static UIColor *dominantColorFromIcon(UIImage *icon, float alpha){
 %hook MediaControlsHeaderView
 -(void)primaryLabel{
 
+    //Yeah this is fucked right here. Good thing I found a better way to do it in
+    //Album art as background. It works so much better and is a lot less hacky
     UIView *bg = self.superview.superview.superview.superview.superview;
-    //[bg setBackgroundColor: [UIColor clearColor]];
 
     UIColor * bgColor = dominantColorFromIcon(self.artworkView.image,nowPlayingColorAlpha);
-
 
     if((nowPlayingEnabled || ccNowPlayingEnabled ) && enabled){
         if(self.shouldUsePlaceholderArtwork == NO)
@@ -276,9 +270,7 @@ static UIColor *dominantColorFromIcon(UIImage *icon, float alpha){
 
 %new
 - (void)colorBG:(UIView *)parentView color:(UIColor *)colorToUse isCustom:(BOOL)shouldUseCustomColor{
-    //[self colorLabels:subview color:colorToUse];
-
-    //Color the CC Widget View
+    //Color the CC  View
     if(ccNowPlayingEnabled) {
       if([parentView isKindOfClass:[objc_getClass("_MTBackdropView") class]]){
         _MTBackdropView *ccBack = (_MTBackdropView *)parentView;
@@ -297,7 +289,6 @@ static UIColor *dominantColorFromIcon(UIImage *icon, float alpha){
       }
     }
 
-
     //Color the blur view for the NCWidget
     if([parentView isKindOfClass:[objc_getClass("_UIBackdropEffectView") class]]){
         _UIBackdropEffectView *npBack = (_UIBackdropEffectView *)parentView;
@@ -306,7 +297,6 @@ static UIColor *dominantColorFromIcon(UIImage *icon, float alpha){
 
         return;
     }
-
 
     for (UIView *subview in parentView.subviews){
         [self colorBG:subview color:colorToUse isCustom:shouldUseCustomColor];
@@ -341,8 +331,6 @@ static UIColor *dominantColorFromIcon(UIImage *icon, float alpha){
         return;
     }
 
-    //TODO Color the BSUIRelativeDateLabel
-
     //If we are not a label, search all subviews for the label
     for (UIView *subview in parentView.subviews){
         [self colorLabels:subview color:colorToUse];
@@ -358,7 +346,6 @@ static UIColor *dominantColorFromIcon(UIImage *icon, float alpha){
 %hook WGWidgetPlatterView
 -(void)setIcon:(id)arg1{
     %orig;
-    refreshPrefs();
 
     const CGFloat width = [UIScreen mainScreen].bounds.size.width;
     if(enabled && widgetsEnabled){
@@ -366,7 +353,6 @@ static UIColor *dominantColorFromIcon(UIImage *icon, float alpha){
         UIImage *iconImage = self.icon;
 
         UIColor *iconColor;
-
 
         //Determine constant color
         if(widgetsCustomColorEnabled)
@@ -376,7 +362,7 @@ static UIColor *dominantColorFromIcon(UIImage *icon, float alpha){
 
         CGFloat offsetFixed =  ((offset - self.icon.size.width) * 1.5 + self.icon.size.width) ;
 
-
+        //Break down the color so we can figure out relative data coloring
         const CGFloat* iconComponents = CGColorGetComponents(iconColor.CGColor);
         CGFloat iconRed = iconComponents[0];
         CGFloat iconGreen = iconComponents[1];
@@ -385,7 +371,8 @@ static UIColor *dominantColorFromIcon(UIImage *icon, float alpha){
         if(widgetsCustomColorEnabled)
           iconColor = [UIColor colorWithRed: iconRed green:iconGreen blue:iconBlue alpha:widgetsColorAlpha];
 
-
+        //TODO We need a beter way to get the height of the view. I think I have this worked out
+        //For a rewrite but havent had time to fully implement
         UIView *bg=[[UIView alloc]initWithFrame:CGRectMake(0,0,width,1500)];
 
         if((widgetsBlurStyle == 1 || widgetsBlurStyle == 2) || widgetsBlurStyle == 0){
@@ -401,18 +388,20 @@ static UIColor *dominantColorFromIcon(UIImage *icon, float alpha){
             [bg addSubview:blurEffectView];
         }
 
+        //The color view
         UIView *colorView =[[UIView alloc]initWithFrame:bg.frame];
 
+        //Calculate if we need black or white tect based on brightness.
+        //TODO Again I Hav found a better way for future rewrite
         float luminence = (iconComponents[0]) * .299 + (iconComponents[1]) * .587 + (iconComponents[2]) * .114;
-
         if(luminence > .7) //should use white
             [self colorLabels:(UIView *)self.superview.superview.superview.superview  color:[UIColor blackColor]];
         else //Should use black
             [self colorLabels:(UIView *)self.superview.superview.superview.superview  color:[UIColor whiteColor]];
 
 
-
         if(widgetsGradientEnabled) {
+          //TODO REWRITE - Const addition/subtraction value to set.
           //If gradient enabled
           switch(widgetsGradientStyle){
             case(1):
@@ -425,7 +414,6 @@ static UIColor *dominantColorFromIcon(UIImage *icon, float alpha){
                 iconGreen = 1;
               else
                 iconGreen = iconGreen + .2;
-
               if(iconBlue + .2 > 1)
                 iconBlue = 1;
               else
@@ -451,6 +439,7 @@ static UIColor *dominantColorFromIcon(UIImage *icon, float alpha){
               break; //Use regular color
           }
 
+          //Create gradient view
           CAGradientLayer *gradient = [CAGradientLayer layer];
           gradient.startPoint = CGPointMake(0, 0.5);
           gradient.endPoint = CGPointMake(1, 0.5);
@@ -470,8 +459,8 @@ static UIColor *dominantColorFromIcon(UIImage *icon, float alpha){
           [colorView setBackgroundColor: iconColor];
 
         bg.clipsToBounds= YES;
-        //bg.layer.cornerRadius = 5;
 
+        //Fake Header Stuff
         if(widgetsUserWantsFakeHeader){
           UIView *fakeHeader=[[UIView alloc]initWithFrame:CGRectMake(0,0,width,offsetFixed)];
           UIColor * headerColor = iconColor;
@@ -479,8 +468,6 @@ static UIColor *dominantColorFromIcon(UIImage *icon, float alpha){
             headerColor = dominantColorFromIcon(iconImage,widgetsFakeHeaderColorAlpha);
           if(widgetsHeaderCustomColorEnabled)
             headerColor = widgetsHeaderCustomColor;
-
-
 
           const CGFloat* headerComponents = CGColorGetComponents(headerColor.CGColor);
           CGFloat headerRed = headerComponents[0];
@@ -526,7 +513,6 @@ static UIColor *dominantColorFromIcon(UIImage *icon, float alpha){
             }
           }
 
-
           [fakeHeader setBackgroundColor: [UIColor colorWithRed:headerRed green:headerGreen blue:headerBlue alpha:widgetsFakeHeaderColorAlpha]];
           [colorView addSubview:fakeHeader];
           [colorView bringSubviewToFront:fakeHeader];
@@ -534,74 +520,72 @@ static UIColor *dominantColorFromIcon(UIImage *icon, float alpha){
         }
 
 
-              if(widgetsUserWantsUnderline){
+        if(widgetsUserWantsUnderline){
 
-                UIView *underline=[[UIView alloc]initWithFrame:CGRectMake(0,offsetFixed,width,1)];
-                UIColor * underlineColor = iconColor;
-                if(widgetsCustomColorEnabled)
-                  underlineColor = dominantColorFromIcon(iconImage,widgetsUnderlineColorAlpha);
-                if(widgetsUnderlineCustomColorEnabled)
-                  underlineColor = widgetsUnderlineCustomColor;
+          UIView *underline=[[UIView alloc]initWithFrame:CGRectMake(0,offsetFixed,width,1)];
+          UIColor * underlineColor = iconColor;
+          if(widgetsCustomColorEnabled)
+            underlineColor = dominantColorFromIcon(iconImage,widgetsUnderlineColorAlpha);
+          if(widgetsUnderlineCustomColorEnabled)
+            underlineColor = widgetsUnderlineCustomColor;
 
-                const CGFloat* underlineComponents = CGColorGetComponents(underlineColor.CGColor);
-                CGFloat underlineRed = underlineComponents[0];
-                CGFloat underlineGreen = underlineComponents[1];
-                CGFloat underlineBlue = underlineComponents[2];
+          const CGFloat* underlineComponents = CGColorGetComponents(underlineColor.CGColor);
+          CGFloat underlineRed = underlineComponents[0];
+          CGFloat underlineGreen = underlineComponents[1];
+          CGFloat underlineBlue = underlineComponents[2];
 
-                if(!widgetsUnderlineCustomColorEnabled){
-                  switch(widgetsUnderlineStyle){
-                    case(1):
-                      if(underlineRed + .1 > 1)
-                        underlineRed = 1;
-                      else
-                        underlineRed = underlineRed + .1;
+          if(!widgetsUnderlineCustomColorEnabled){
+            switch(widgetsUnderlineStyle){
+              case(1):
+                if(underlineRed + .1 > 1)
+                  underlineRed = 1;
+                else
+                  underlineRed = underlineRed + .1;
 
-                      if(underlineGreen + .1 > 1)
-                        underlineGreen = 1;
-                      else
-                        underlineGreen = underlineGreen + .1;
+                if(underlineGreen + .1 > 1)
+                  underlineGreen = 1;
+                else
+                  underlineGreen = underlineGreen + .1;
 
-                      if(underlineBlue + .1 > 1)
-                        underlineBlue = 1;
-                      else
-                        underlineBlue = underlineBlue + .1;
-                      break;
-                    case(2):
-                      if(underlineRed - .1 < 0)
-                        underlineRed = 0;
-                      else
-                        underlineRed = underlineRed - .1;
+                if(underlineBlue + .1 > 1)
+                  underlineBlue = 1;
+                else
+                  underlineBlue = underlineBlue + .1;
+                break;
+              case(2):
+                if(underlineRed - .1 < 0)
+                  underlineRed = 0;
+                else
+                  underlineRed = underlineRed - .1;
 
-                      if(underlineGreen - .1 < 0)
-                        underlineGreen = 0;
-                      else
-                        underlineGreen = underlineGreen - .1;
+                if(underlineGreen - .1 < 0)
+                  underlineGreen = 0;
+                else
+                  underlineGreen = underlineGreen - .1;
 
-                      if(underlineBlue - .1 < 0)
-                        underlineBlue = 0;
-                      else
-                        underlineBlue = underlineBlue - .1;
-                      break;
-                    default:
-                      break; //Use regular color
+                if(underlineBlue - .1 < 0)
+                  underlineBlue = 0;
+                else
+                  underlineBlue = underlineBlue - .1;
+                break;
+              default:
+                break; //Use regular color
                   }
                 }
 
-                [underline setBackgroundColor: [UIColor colorWithRed:underlineRed green:underlineGreen blue:underlineBlue alpha:widgetsUnderlineColorAlpha]];
-                [colorView addSubview:underline];
-                [colorView bringSubviewToFront:underline];
-              }
+          [underline setBackgroundColor: [UIColor colorWithRed:underlineRed green:underlineGreen blue:underlineBlue alpha:widgetsUnderlineColorAlpha]];
+          [colorView addSubview:underline];
+          [colorView bringSubviewToFront:underline];
+        }
 
         [bg addSubview:colorView];
         [self setBackgroundView:bg];
-        //[self i:bg];
-        //[self insertSubview:bg atIndex:2];
+
     }
 }
 
 -(void)_configureHeaderOverlayViewIfNecessary{
     %orig;
-
 }
 
 -(void)setBackgroundView:(id)arg1{
@@ -610,7 +594,6 @@ static UIColor *dominantColorFromIcon(UIImage *icon, float alpha){
 
 -(void)layoutSubviews{
   %orig;
-      //BSUIRelativeDateLabel *label = (BSUIRelativeDateLabel *)parentView;
       refreshPrefs();
       if(enabled && widgetsEnabled){
           UIImage *iconImage = self.icon;
@@ -664,21 +647,6 @@ static UIColor *dominantColorFromIcon(UIImage *icon, float alpha){
       bg.layer.opacity = 0;
       return;
     }
-/*
-    //Update UITextView Label to Color
-    if([parentView isKindOfClass:[UITextView class]]){
-        UITextView *label = (UITextView *)parentView;
-        label.textColor = colorToUse;
-        return;
-    }
-
-    if([parentView isKindOfClass:[UILabel class]]){
-        UILabel *label = (UILabel *)parentView;
-        label.textColor = colorToUse;
-        return;
-    }
-*/
-    //TODO Color the BSUIRelativeDateLabel
 
     //If we are not a label, search all subviews for the label
     for (UIView *subview in parentView.subviews){
@@ -700,9 +668,7 @@ static UIColor *dominantColorFromIcon(UIImage *icon, float alpha){
 
     const CGFloat width = [UIScreen mainScreen].bounds.size.width;
     if(enabled && bannersEnabled){
-        //UIImage *iconImage = arg1;
         UIImage *iconImage = self.icon;
-
         UIColor *iconColor;
 
         CGFloat offsetFixed =  ((offset - self.icon.size.width) * 1.5 + self.icon.size.width) ;
@@ -721,7 +687,6 @@ static UIColor *dominantColorFromIcon(UIImage *icon, float alpha){
         if(bannersCustomColorEnabled)
           iconColor = [UIColor colorWithRed: iconRed green:iconGreen blue:iconBlue alpha:bannersColorAlpha];
 
-
         UIView *bg=[[UIView alloc]initWithFrame:CGRectMake(0,0,width,1500)];
 
         if((bannersBlurStyle == 1 || bannersBlurStyle == 2) || bannersBlurStyle == 0){
@@ -739,7 +704,6 @@ static UIColor *dominantColorFromIcon(UIImage *icon, float alpha){
 
 
         //Calculate luminence
-
         float luminence = (iconComponents[0]) * .299 + (iconComponents[1]) * .587 + (iconComponents[2]) * .114;
 
         if(luminence > .7) //should use white
@@ -751,6 +715,9 @@ static UIColor *dominantColorFromIcon(UIImage *icon, float alpha){
         UIView *colorView =[[UIView alloc]initWithFrame:bg.frame];
         if(bannersGradientEnabled) {
           //If gradient enabled
+          //TODO Rewrite for const color manipulation add/subracts
+          // Update colors based on users selection
+
           switch(bannersGradientStyle){
             case(1):
               if(iconRed + .2 > 1)
@@ -788,6 +755,7 @@ static UIColor *dominantColorFromIcon(UIImage *icon, float alpha){
               break; //Use regular color
           }
 
+          //Create gradient
           CAGradientLayer *gradient = [CAGradientLayer layer];
           gradient.startPoint = CGPointMake(0, 0.5);
           gradient.endPoint = CGPointMake(1, 0.5);
@@ -799,7 +767,6 @@ static UIColor *dominantColorFromIcon(UIImage *icon, float alpha){
             CGFloat customGradientGreen = customGradientComponents[1];
             CGFloat customGradientBlue = customGradientComponents[2];
             gradient.colors = @[(id) iconColor.CGColor , (id)[UIColor colorWithRed:customGradientRed green:customGradientGreen blue:customGradientBlue alpha:bannersGradientColorAlpha].CGColor];
-
           }else
             gradient.colors = @[(id) iconColor.CGColor , (id)[UIColor colorWithRed:iconRed green:iconGreen blue:iconBlue alpha:bannersGradientColorAlpha].CGColor];
 
@@ -808,8 +775,8 @@ static UIColor *dominantColorFromIcon(UIImage *icon, float alpha){
           [colorView setBackgroundColor: iconColor];
 
         bg.clipsToBounds= YES;
-        //bg.layer.cornerRadius = 5;
 
+        //Fake Header Coloring View
         if(bannersUserWantsFakeHeader){
 
           UIView *fakeHeader=[[UIView alloc]initWithFrame:CGRectMake(0,0,width,offsetFixed)];
@@ -868,7 +835,7 @@ static UIColor *dominantColorFromIcon(UIImage *icon, float alpha){
         [colorView bringSubviewToFront:fakeHeader];
       }
 
-
+      //Underline View
       if(bannersUserWantsUnderline){
 
         UIView *underline=[[UIView alloc]initWithFrame:CGRectMake(0,offsetFixed,width,1)];
@@ -928,18 +895,14 @@ static UIColor *dominantColorFromIcon(UIImage *icon, float alpha){
 
       }
 
+      [bg addSubview:colorView];
+      [self setBackgroundView:bg];
 
-        [bg addSubview:colorView];
-        [self setBackgroundView:bg];
-        //[self i:bg];
-        //[self insertSubview:bg atIndex:2];
     }
 }
 
 -(void)layoutSubviews{
   %orig;
-      //BSUIRelativeDateLabel *label = (BSUIRelativeDateLabel *)parentView;
-      refreshPrefs();
       if(enabled && bannersEnabled){
           UIImage *iconImage = self.icon;
           UIColor *iconColor;
@@ -995,22 +958,7 @@ static UIColor *dominantColorFromIcon(UIImage *icon, float alpha){
       MTMaterialView *bg = (MTMaterialView *)parentView;
       bg.layer.opacity = 0;
     }
-/*
-    if([parentView isKindOfClass:[objc_getClass("BSUIDateLabel") class]]){
-      BSUIDateLabel *label = (BSUIDateLabel *)parentView;
-      label.textColor = colorToUse;
-    }
 
-    if([parentView isKindOfClass:[objc_getClass("BSUIDefaultDateLabel") class]]){
-      BSUIDefaultDateLabel *label = (BSUIDefaultDateLabel *)parentView;
-      label.textColor = colorToUse;
-    }
-
-    if([parentView isKindOfClass:[objc_getClass("BSUIRelativeDateLabel") class]]){
-      BSUIRelativeDateLabel *label = (BSUIRelativeDateLabel *)parentView;
-      label.textColor = colorToUse;
-    }
-*/
     //If we are not a label, search all subviews for the label
     for (UIView *subview in parentView.subviews){
         [self colorLabels:subview color:colorToUse];
@@ -1023,7 +971,11 @@ static UIColor *dominantColorFromIcon(UIImage *icon, float alpha){
 
 -(void)layoutSubviews{
   %orig;
-  offset = (self.contentBaseline);
+
+  //Check to not fuck up when other views have a contentBaseline
+  //TODO Fix for less hacky check
+  if(self.contentBaseline < 40 )
+     offset = (self.contentBaseline);
 
 }
 %end

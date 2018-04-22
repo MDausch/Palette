@@ -1,10 +1,11 @@
 Package: ch.mdaus.palette
 Name: Palette
 Depends: mobilesubstrate, org.thebigboss.libcolorpicker
-Version: 0.5.3
 Architecture: iphoneos-arm
 Description: Color app notifications based off of average icon color
 Maintainer: Maxwell Dausch <max.dausch@gmail.com>
 Author: Maxwell Dausch <max.dausch@gmail.com>
 Section: Tweaks
 Depiction: http://mdaus.ch/repo/depictions/?p=ch.mdaus.palette
+Version: 0.5.3-3+debug
+Installed-Size: 736
